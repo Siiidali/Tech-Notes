@@ -9,12 +9,14 @@ const asyncHandler = require('express-async-handler');
 const login = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
+  // confirm data
   if (!username || !password) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
   const foundUser = await User.findOne({ username }).exec();
 
+  // check if the user is founded and he's active
   if (!foundUser || !foundUser.active) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -45,7 +47,7 @@ const login = asyncHandler(async (req, res) => {
     httpOnly: true, //accessible only by web server
     secure: true, //https
     sameSite: 'None', //cross-site cookie
-    maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+    maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry
   });
 
   // Send accessToken containing username and roles
