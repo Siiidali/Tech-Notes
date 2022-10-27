@@ -1,7 +1,7 @@
-const User = require('../models/UserModel');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const asyncHandler = require('express-async-handler');
+const User = require("../models/UserModel");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const asyncHandler = require("express-async-handler");
 
 // @desc Login
 // @route POST /auth
@@ -11,19 +11,19 @@ const login = asyncHandler(async (req, res) => {
 
   // confirm data
   if (!username || !password) {
-    return res.status(400).json({ message: 'All fields are required' });
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   const foundUser = await User.findOne({ username }).exec();
 
   // check if the user is founded and he's active
   if (!foundUser || !foundUser.active) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   const match = await bcrypt.compare(password, foundUser.password);
 
-  if (!match) return res.status(401).json({ message: 'Unauthorized' });
+  if (!match) return res.status(401).json({ message: "Unauthorized" });
 
   const accessToken = jwt.sign(
     {
@@ -33,20 +33,20 @@ const login = asyncHandler(async (req, res) => {
       },
     },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: '1m' }
+    { expiresIn: "15m" }
   );
 
   const refreshToken = jwt.sign(
     { username: foundUser.username },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: '1d' }
+    { expiresIn: "7d" }
   );
 
   // Create secure cookie with refresh token
-  res.cookie('jwt', refreshToken, {
+  res.cookie("jwt", refreshToken, {
     httpOnly: true, //accessible only by web server
     secure: true, //https
-    sameSite: 'None', //cross-site cookie
+    sameSite: "None", //cross-site cookie
     maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry
   });
 
@@ -60,7 +60,7 @@ const login = asyncHandler(async (req, res) => {
 const refresh = (req, res) => {
   const cookies = req.cookies;
 
-  if (!cookies?.jwt) return res.status(401).json({ message: 'Unauthorized' });
+  if (!cookies?.jwt) return res.status(401).json({ message: "Unauthorized" });
 
   const refreshToken = cookies.jwt;
 
@@ -68,13 +68,13 @@ const refresh = (req, res) => {
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
     asyncHandler(async (err, decoded) => {
-      if (err) return res.status(403).json({ message: 'Forbidden' });
+      if (err) return res.status(403).json({ message: "Forbidden" });
 
       const foundUser = await User.findOne({
         username: decoded.username,
       }).exec();
 
-      if (!foundUser) return res.status(401).json({ message: 'Unauthorized' });
+      if (!foundUser) return res.status(401).json({ message: "Unauthorized" });
 
       const accessToken = jwt.sign(
         {
@@ -84,7 +84,7 @@ const refresh = (req, res) => {
           },
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '1m' }
+        { expiresIn: "15m" }
       );
 
       res.json({ accessToken });
@@ -98,8 +98,8 @@ const refresh = (req, res) => {
 const logout = (req, res) => {
   const cookies = req.cookies;
   if (!cookies?.jwt) return res.sendStatus(204); //No content
-  res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true });
-  res.json({ message: 'Cookie cleared' });
+  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
+  res.json({ message: "Cookie cleared" });
 };
 
 module.exports = {
