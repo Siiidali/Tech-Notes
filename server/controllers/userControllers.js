@@ -1,15 +1,15 @@
-const User = require('../models/UserModel');
-const Note = require('../models/NoteModel');
-const asyncHandler = require('express-async-handler');
-const bcrypt = require('bcrypt');
+const User = require("../models/UserModel");
+const Note = require("../models/NoteModel");
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcrypt");
 
 // @desc Get all users
 // @route GET /users
 // @access Private
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select('-password').lean();
+  const users = await User.find().select("-password").lean();
   if (!users.length) {
-    return res.status(400).json({ message: 'No users found' });
+    return res.status(400).json({ message: "No users found" });
   }
   res.json(users);
 });
@@ -21,29 +21,35 @@ const createNewUser = asyncHandler(async (req, res) => {
   const { username, password, roles } = req.body;
 
   // confirm data
-  if (!username || !password || !Array.isArray(roles) || !roles.length) {
-    return res.status(400).json({ message: 'All fields are required' });
+  if (!username || !password) {
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   // check duplicate
-  const duplicate = await User.findOne({ username }).lean().exec();
+  const duplicate = await User.findOne({ username })
+    .collation({ locale: "en", strength: 2 })
+    .lean()
+    .exec();
   if (duplicate) {
-    return res.status(409).json({ message: 'username duplicate' });
+    return res.status(409).json({ message: "username duplicate" });
   }
 
   // hash password
   const salt = await bcrypt.genSalt();
   const hashPassword = await bcrypt.hash(password, salt);
 
-  const userObject = { username, password: hashPassword, roles };
+  const userObject =
+    !Array.isArray(roles) || !roles.length
+      ? { username, password: hashedPwd }
+      : { username, password: hashedPwd, roles };
 
   // store the new user
   const user = await User.create(userObject);
 
   if (user) {
-    res.status(201).json({ message: 'New user created' });
+    res.status(201).json({ message: "New user created" });
   } else {
-    res.status(400).json({ message: 'Invalid user data reveived' });
+    res.status(400).json({ message: "Invalid user data reveived" });
   }
 });
 
@@ -59,26 +65,29 @@ const updateUser = asyncHandler(async (req, res) => {
     !username ||
     !Array.isArray(roles) ||
     !roles.length ||
-    typeof active !== 'boolean'
+    typeof active !== "boolean"
   ) {
     return res
       .status(400)
-      .json({ message: 'All fields except password are required' });
+      .json({ message: "All fields except password are required" });
   }
 
   // Does the user exist to update?
   const user = await User.findById(id).exec();
 
   if (!user) {
-    return res.status(400).json({ message: 'User not found' });
+    return res.status(400).json({ message: "User not found" });
   }
 
   // Check for duplicate
-  const duplicate = await User.findOne({ username }).lean().exec();
+  const duplicate = await User.findOne({ username })
+    .collation({ locale: "en", strength: 2 })
+    .lean()
+    .exec();
 
   // Allow updates to the original user
   if (duplicate && duplicate?._id.toString() !== id) {
-    return res.status(409).json({ message: 'Duplicate username' });
+    return res.status(409).json({ message: "Duplicate username" });
   }
 
   user.username = username;
@@ -103,20 +112,20 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   // Confirm data
   if (!id) {
-    return res.status(400).json({ message: 'User ID Required' });
+    return res.status(400).json({ message: "User ID Required" });
   }
 
   // Does the user still have assigned notes?
   const note = await Note.findOne({ user: id }).lean().exec();
   if (note) {
-    return res.status(400).json({ message: 'User has assigned notes' });
+    return res.status(400).json({ message: "User has assigned notes" });
   }
 
   // Does the user exist to delete?
   const user = await User.findById(id).exec();
 
   if (!user) {
-    return res.status(400).json({ message: 'User not found' });
+    return res.status(400).json({ message: "User not found" });
   }
 
   const result = await user.deleteOne();
