@@ -36,7 +36,7 @@ const createNewUser = asyncHandler(async (req, res) => {
 
   // hash password
   const salt = await bcrypt.genSalt();
-  const hashPassword = await bcrypt.hash(password, salt);
+  const hashedPwd = await bcrypt.hash(password, salt);
 
   const userObject =
     !Array.isArray(roles) || !roles.length
